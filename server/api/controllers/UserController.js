@@ -59,8 +59,8 @@ module.exports = {
     },
     private : function(req,res){
         var socketId =  sails.sockets.getId(req);
-        console.log(req.param('msg'));
-        console.log(req.session.user.id);
+       // console.log(req.param('msg'));
+      //  console.log(req.session.user.id);
         User.findOne(req.session.user.id).exec(function(err,sender){
             User.message(req.param('to'),{
                 from : sender,
@@ -76,7 +76,7 @@ module.exports = {
     test : function(req,res){
         var io= sails.io;
         var socketId = req.param('to');
-        console.log(socketId);
+        //console.log(socketId);
         sails.sockets.join(socketId, socketId);
          io.sockets.emit(socketId, { from: req.session.user, msg:req.param('msg'), sender: true});
          return res.json({ from: req.session.user, msg:req.param('msg')});
@@ -88,6 +88,74 @@ module.exports = {
         console.log(buildingNumber);
         io.sockets.emit(buildingNumber, { from: req.session.user, msg: req.param('msg'), sender:false});
           return res.json({ from: req.session.user, msg:req.param('msg')});
+    },
+    cartregister : function(req,res){
+         var name = req.query.name;
+          var password = req.query.password;
+          //console.log(name);
+          Cartuser.create({username: name, password: password}).exec(function(err,user){
+              if(err) return res.badRequest();
+              if(user){
+                  req.session.user = user;
+                return  res.ok(user);
+              }
+              else{
+                  return res.badRequest({error: "Invalid Credientials"});
+              }
+             
+          })
+    },
+    cartlogin : function(req,res){
+          var name = req.query.name;
+          var password = req.query.password;
+          //console.log(name);
+          Cartuser.findOne({username: name, password: password}).exec(function(err,user){
+              if(err) return res.badRequest();
+              if(user){
+                   req.session.user = user;
+                return  res.ok(user);
+              }
+              else{
+                  return res.badRequest({error: "Invalid Credientials"});
+              }
+             
+          })
+    },
+    savecart : function(req,res){
+        var cartList = req.body;
+        cartList.owner = req.session.user.id;
+       // console.log(cartList);
+            Cartdata.create(cartList).exec(function(err,user){
+               // console.log(user);
+                return res.ok(user);
+            
+        })
+    
+    },
+    getCart : function(req,res){
+          //console.log(req.session.user);
+          console.log(req.session.user);
+          if(req.session.user){
+             Cartuser.find({id: req.session.user.id}).populate('cart').exec(function(err,cart){
+              if(err) return res.badRequest();
+              if(cart){
+                  return res.ok(cart);
+              }
+          })
+          }
+          else{
+              res.badRequest();
+          }
+         
+    },
+    logout : function(req,res){
+        if(req.session.user){
+            req.session.user = null;
+            return res.ok();
+        }
+        else{
+            res.send(null);
+        }
     }
 };
 
